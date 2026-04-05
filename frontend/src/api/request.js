@@ -3,8 +3,11 @@ import { useUserStore } from '@/store/userStore'
 import router from '@/router'
 
 // 创建axios实例
+// 如果 VITE_API_BASE_URL 为空，使用相对路径（同源）
+const baseURL = import.meta.env.VITE_API_BASE_URL || '/api'
+
 const request = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001',
+  baseURL,
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json'
@@ -53,6 +56,9 @@ request.interceptors.response.use(
       } else {
         console.error('服务器错误:', error.response.data?.message || '未知错误')
       }
+    } else if (error.request) {
+      // 请求已发送但没有收到响应
+      console.error('网络错误: 无法连接到服务器，请检查网络连接')
     } else {
       console.error('网络错误:', error.message)
     }

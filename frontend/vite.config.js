@@ -9,12 +9,26 @@ export default defineConfig({
   },
   server: {
     port: 3000,
-    host: '0.0.0.0', // 允许公网访问
+    host: '0.0.0.0',
     proxy: {
       '/api': {
         target: 'http://localhost:3001',
         changeOrigin: true
       }
     }
-  }
+  },
+  build: {
+    outDir: 'dist',
+    assetsDir: 'assets',
+    sourcemap: false,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'vue-vendor': ['vue', 'vue-router', 'pinia'],
+          'network': ['axios']
+        }
+      }
+    }
+  },
+  base: '/'
 })
