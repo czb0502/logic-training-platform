@@ -4,7 +4,8 @@
   "description": "逻辑思维训练平台 - 全栈项目",
   "scripts": {
     "install:all": "cd backend && npm install && cd ../frontend && npm install",
-    "start": "start.bat",
+    "build:frontend": "cd frontend && npm install && npm run build",
+    "start": "cd backend && npm install && node server.js",
     "dev": "concurrently \"cd backend && npm start\" \"cd frontend && npm run dev\""
   },
   "devDependencies": {
