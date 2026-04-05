@@ -1,0 +1,1456 @@
+﻿<template>
+  <div class="production-line-game">
+    <!-- 瀹犵墿浼翠荆 -->
+    <div class="pet-companion" :style="petStyle" @click="petClick">
+      <span class="pet-emoji">{{ currentPetAvatar }}</span>
+      <div class="pet-thought" v-if="petMessage">{{ petMessage }}</div>
+    </div>
+    
+    <!-- 鍏冲崱閫夋嫨鐣岄潰 -->
+    <div v-if="!currentLevel" class="level-select">
+      <div class="header">
+        <button class="btn-back" @click="router.back()">鈫?杩斿洖棣栭〉</button>
+        <div class="title-area">
+          <h1>馃彮 铏氭嫙浜х嚎娌欑洏</h1>
+          <p>鎼Н鏈ㄥ紡娴佺▼鎼缓 路 闆堕棬妲涢€昏緫璁粌</p>
+        </div>
+      </div>
+      
+      <div class="intro-card">
+        <h2>馃幆 浣犳槸浜х嚎璋冨害甯?/h2>
+        <p>鎷栨斁鍔ㄤ綔鍧?鈫?璁剧疆瑙勫垯 鈫?鍚姩浠跨湡 鈫?鐪嬩骇绾胯窇璧锋潵锛?/p>
+        <p class="highlight">鍏ㄧ▼鏃犱笓涓氭湳璇紝鍍忔惌涔愰珮涓€鏍风帺閫昏緫</p>
+      </div>
+      
+      <div class="level-grid">
+        <div
+          v-for="(level, index) in engineeringLevels"
+          :key="level.id"
+          class="level-card"
+          :class="{ locked: isLocked(level, index), completed: isCompleted(level.id) }"
+          @click="selectLevel(level, index)"
+        >
+          <div class="level-number">{{ index + 1 }}</div>
+          <div class="level-info">
+            <h3>{{ level.title }}</h3>
+            <p>{{ level.description }}</p>
+          </div>
+          <div class="level-meta">
+            <span class="stars">{{ '猸?.repeat(level.stars) }}</span>
+            <span v-if="isLocked(level, index)" class="lock-icon">馃敀</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- 娓告垙鐣岄潰 -->
+    <div v-else class="game-screen">
+      <!-- 椤堕儴鐘舵€佹爮 -->
+      <div class="game-header">
+        <button class="btn-back" @click="exitLevel">鈫?杩斿洖棣栭〉</button>
+        <div class="level-title">
+          <h2>鍏冲崱{{ currentLevelIndex + 1 }}锛歿{ currentLevel.title }}</h2>
+          <p>{{ currentLevel.description }}</p>
+        </div>
+        <div class="status-badge" :class="statusClass">{{ statusText }}</div>
+      </div>
+      
+      <!-- 涓绘父鎴忓尯鍩?-->
+      <div class="game-main">
+        <!-- 宸︿晶锛氫骇绾夸豢鐪熷尯 -->
+        <div class="simulation-area">
+          <div class="sim-header">
+            <h3>馃摵 浜х嚎浠跨湡</h3>
+            <div class="sim-controls">
+              <button class="btn-debug" @click="startDebug" :disabled="isRunning">
+                馃敡 璋冭瘯杩愯
+              </button>
+              <button class="btn-submit" @click="submitFlow" :disabled="!canSubmit">
+                鉁?鎻愪氦
+              </button>
+              <button class="btn-stop" @click="stopSimulation" :disabled="!isRunning">
+                鈴?鍋滄
+              </button>
+              <button class="btn-reset" @click="resetSimulation">馃彔 鍥炲師</button>
+              <button class="btn-clear" @click="clearFlow">馃棏 娓呯┖</button>
+            </div>
+          </div>
+          
+          <!-- 浜х嚎甯冨眬 -->
+          <div class="production-layout">
+            <!-- 涓婃柟锛氫紶閫佸甫 + 鏈烘鎵?-->
+            <div class="top-row">
+              <!-- 浼犻€佸甫 -->
+              <div class="device conveyor" :class="{ active: devices.conveyor.active }">
+                <div class="device-label">浼犻€佸甫涓婃枡</div>
+                <div class="conveyor-visual">
+                  <div class="conveyor-belt" :class="{ moving: devices.conveyor.active }">
+                    <span class="belt-segment">鈺?/span>
+                    <span class="belt-segment">鈺?/span>
+                    <span class="belt-segment">鈺?/span>
+                    <span class="belt-segment">鈺?/span>
+                    <span class="belt-segment">鈺?/span>
+                  </div>
+                  <div class="material-area">
+                    <span class="material" v-if="devices.conveyor.hasMaterial">馃摝</span>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- 鏈烘鎵?-->
+              <div class="device arm" :class="{ holding: devices.arm.holding, moving: devices.arm.moving }">
+                <div class="device-label">鏈烘鎵?/div>
+                <div class="arm-visual">
+                  <div class="arm-track">
+                    <div class="arm-cart" :style="{ left: armPosition + '%' }">
+                      <div class="arm-vertical" :class="{ down: devices.arm.down }">
+                        <span class="arm-gripper">{{ devices.arm.holding ? '鉁? : '馃枑' }}</span>
+                        <span class="held-material" v-if="devices.arm.holding">馃摝</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- 涓嬫枡浼犻€佸甫 -->
+              <div class="device output" :class="{ active: devices.output.active }">
+                <div class="device-label">涓嬫枡浼犻€佸甫</div>
+                <div class="conveyor-visual">
+                  <div class="conveyor-belt" :class="{ moving: devices.output.active }">
+                    <span class="belt-segment">鈺?/span>
+                    <span class="belt-segment">鈺?/span>
+                    <span class="belt-segment">鈺?/span>
+                    <span class="belt-segment">鈺?/span>
+                    <span class="belt-segment">鈺?/span>
+                  </div>
+                  <div class="output-count">鉁?{{ completedCount }} 涓?/div>
+                </div>
+              </div>
+            </div>
+            
+            <!-- 涓棿锛氬渾褰㈣浆鐩?-->
+            <div class="middle-row">
+              <div class="turntable-container">
+                <div class="turntable-label">鍥涘伐浣嶈浆鐩?/div>
+                <div class="turntable" :class="{ rotating: devices.turntable.rotating }" 
+                     :style="{ transform: `rotate(${turntableRotation}deg)` }">
+                  <!-- 涓績 -->
+                  <div class="turntable-center">
+                    <span class="center-icon">鈿欙笍</span>
+                  </div>
+                  <!-- 鍥涗釜宸ヤ綅 -->
+                  <div class="station station-1" :class="{ hasMaterial: devices.turntable.stations[0].hasMaterial }">
+                    <span class="station-name">涓婃枡</span>
+                    <span class="station-material" v-if="devices.turntable.stations[0].hasMaterial">馃摝</span>
+                  </div>
+                  <div class="station station-2" :class="{ hasMaterial: devices.turntable.stations[1].hasMaterial }">
+                    <span class="station-name">鍔犲伐</span>
+                    <span class="station-material" v-if="devices.turntable.stations[1].hasMaterial">馃摝</span>
+                  </div>
+                  <div class="station station-3" :class="{ hasMaterial: devices.turntable.stations[2].hasMaterial }">
+                    <span class="station-name">涓嬫枡</span>
+                    <span class="station-material" v-if="devices.turntable.stations[2].hasMaterial">馃摝</span>
+                  </div>
+                  <div class="station station-4" :class="{ hasMaterial: devices.turntable.stations[3].hasMaterial }">
+                    <span class="station-name">绌轰綅</span>
+                    <span class="station-material" v-if="devices.turntable.stations[3].hasMaterial">馃摝</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- 杩愯鐘舵€佹彁绀?-->
+          <div v-if="debugMode" class="debug-notice">
+            <span>馃敡 璋冭瘯妯″紡</span>
+            <span>杩愯涓彲闅忔椂鍋滄淇敼锛屼笉浼氬垽瀹氬け璐?/span>
+          </div>
+          
+          <div v-if="showSuccess" class="success-overlay">
+            <div class="success-content">
+              <span class="success-icon">馃帀</span>
+              <span>鍏冲崱閫氳繃锛?/span>
+              <div class="stats">
+                <span>鐢ㄦ椂: {{ elapsedTime }}绉?/span>
+                <span>鍔ㄤ綔鏁? {{ flow.length }}</span>
+              </div>
+              <button class="btn-next" @click="nextLevel">涓嬩竴鍏?/button>
+            </div>
+          </div>
+        </div>
+        
+        <!-- 鍙充晶锛氬姩浣滅紪鎺掑尯 -->
+        <div class="action-area">
+          <!-- 瑙勫垯鎻愮ず -->
+          <div class="rules-panel">
+            <p class="mission">馃摉 {{ currentLevel.mission }}</p>
+            <div class="rules">
+              <h4>馃搵 瑙勫垯鎻愮ず</h4>
+              <div class="rule-list">
+                <p v-for="(rule, idx) in currentLevel.rules.slice(0, 5)" :key="idx">{{ rule }}</p>
+              </div>
+            </div>
+          </div>
+          
+          <!-- 鍔ㄤ綔搴?-->
+          <div class="action-library">
+            <h4>馃З 鍔ㄤ綔搴擄紙鍙屽嚮娣诲姞锛?/h4>
+            <div class="action-grid">
+              <div
+                v-for="action in currentLevel.availableActions"
+                :key="action"
+                class="action-block"
+                :style="{ borderColor: actionBlocks[action]?.color }"
+                @dblclick="addAction(action)"
+              >
+                <span class="action-icon">{{ actionBlocks[action]?.icon }}</span>
+                <span class="action-name">{{ actionBlocks[action]?.label }}</span>
+              </div>
+            </div>
+          </div>
+          
+          <!-- 娴佺▼缂栨帓 -->
+          <div class="flow-panel">
+            <h4>馃摑 浣犵殑娴佺▼</h4>
+            <div class="flow-list" v-if="flow.length > 0">
+              <div
+                v-for="(action, index) in flow"
+                :key="index"
+                class="flow-item"
+                :class="{ active: currentStep === index }"
+                :style="{ background: actionBlocks[action]?.color }"
+              >
+                <span class="step-num">{{ index + 1 }}</span>
+                <span class="step-icon">{{ actionBlocks[action]?.icon }}</span>
+                <span class="step-name">{{ actionBlocks[action]?.label }}</span>
+                <button class="btn-remove" @click="removeAction(index)">脳</button>
+              </div>
+            </div>
+            <div v-else class="flow-empty">
+              馃憜 鍙屽嚮涓婃柟鍔ㄤ綔鍧楁坊鍔犲埌娴佺▼
+            </div>
+            <button v-if="flow.length > 0" class="btn-clear-flow" @click="clearFlow">馃棏 娓呯┖娴佺▼</button>
+          </div>
+          
+          <!-- 鐩爣杩涘害 -->
+          <div class="goal-panel">
+            <h4>馃幆 鐩爣</h4>
+            <p class="goal-text">{{ currentLevel.goal }}</p>
+            <div class="progress-bar">
+              <div class="progress-fill" :style="{ width: (completedCount / currentLevel.targetCount * 100) + '%' }"></div>
+            </div>
+            <p class="progress-text">宸插畬鎴?{{ completedCount }}/{{ currentLevel.targetCount }} 涓墿鏂?/p>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- 鎴愬氨寮圭獥 -->
+    <div v-if="showAchievement" class="achievement-modal">
+      <div class="achievement-content">
+        <h3>馃帀 鎭枩鑾峰緱鎴愬氨锛?/h3>
+        <div class="achievement-badge">
+          <span class="achievement-icon">{{ achievement.icon }}</span>
+          <span class="achievement-name">{{ achievement.name }}</span>
+        </div>
+        <button class="btn-close" @click="showAchievement = false">澶浜嗭紒</button>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup>
+import { ref, computed, reactive, onMounted, onUnmounted } from 'vue'
+import { useRouter } from 'vue-router'
+import { useGameStore } from '@/store/gameStore'
+import { usePetStore } from '@/store/petStore'
+import { engineeringLevels, actionBlocks } from '@/data/engineeringLevels'
+
+const router = useRouter()
+const gameStore = useGameStore()
+const petStore = usePetStore()
+
+// 褰撳墠瀹犵墿澶村儚锛堜娇鐢ㄧ敤鎴烽€夋嫨鐨勫疇鐗╋級
+const currentPetAvatar = computed(() => {
+  const activePet = petStore.activePet
+  if (activePet && activePet.avatar) {
+    return activePet.avatar
+  }
+  // 榛樿瀹犵墿
+  return '馃惐'
+}
+
+// 调试日志
+console.log('=== 宠物调试 ===')
+console.log('petStore:', petStore)
+console.log('pets:', petStore.pets)
+console.log('activePetId:', petStore.activePetId)
+console.log('activePet:', petStore.activePet)
+console.log('currentPetAvatar:', currentPetAvatar.value))
+
+// 瀹犵墿瀵硅瘽锛堟牴鎹疇鐗╃被鍨嬶級
+const petDialogues = computed(() => {
+  const activePet = petStore.activePet
+  if (activePet && activePet.dialogues) {
+    return activePet.dialogues
+  }
+  return ['鍔犳补锛?, '濂藉帀瀹筹紒', '缁х画~', '鍠祣']
+})
+
+// 瀹犵墿鐘舵€?const petX = ref(100)
+const petY = ref(100)
+const petDirection = ref(1)
+const petMessage = ref('')
+const petStyle = computed(() => ({
+  left: petX.value + 'px',
+  top: petY.value + 'px',
+  transform: `scaleX(${petDirection.value})`
+}))
+
+// 瀹犵墿闅忔満绉诲姩
+let petInterval = null
+const movePet = () => {
+  const maxX = window.innerWidth - 80
+  const maxY = window.innerHeight - 80
+  
+  // 闅忔満鏀瑰彉鏂瑰悜
+  if (Math.random() < 0.1) {
+    petDirection.value *= -1
+  }
+  
+  // 绉诲姩
+  petX.value += petDirection.value * (2 + Math.random() * 3)
+  petY.value += (Math.random() - 0.5) * 4
+  
+  // 杈圭晫妫€娴?  if (petX.value < 50) { petX.value = 50; petDirection.value = 1 }
+  if (petX.value > maxX) { petX.value = maxX; petDirection.value = -1 }
+  if (petY.value < 50) petY.value = 50
+  if (petY.value > maxY) petY.value = maxY
+  
+  // 闅忔満璇磋瘽
+  if (Math.random() < 0.02) {
+    const messages = petDialogues.value
+    petMessage.value = messages[Math.floor(Math.random() * messages.length)]
+    setTimeout(() => { petMessage.value = '' }, 2000)
+  }
+}
+
+// 瀹犵墿鐐瑰嚮鍝嶅簲
+const petClick = () => {
+  const messages = petDialogues.value
+  petMessage.value = messages[Math.floor(Math.random() * messages.length)]
+  setTimeout(() => { petMessage.value = '' }, 2000)
+}
+
+onMounted(async () => {
+  // 鑾峰彇鐢ㄦ埛瀹犵墿鏁版嵁
+  try {
+    await petStore.fetchPets()
+  } catch (e) {
+    console.warn('鑾峰彇瀹犵墿鏁版嵁澶辫触:', e)
+  }
+  // 鍚姩瀹犵墿绉诲姩
+  petInterval = setInterval(movePet, 100)
+})
+
+onUnmounted(() => {
+  if (petInterval) clearInterval(petInterval)
+})
+
+// 鍏冲崱鐘舵€?const currentLevel = ref(null)
+const currentLevelIndex = ref(0)
+const flow = ref([])
+const isRunning = ref(false)
+const debugMode = ref(false)
+const currentStep = ref(-1)
+const completedCount = ref(0)
+const elapsedTime = ref(0)
+const showSuccess = ref(false)
+const showAchievement = ref(false)
+const achievement = ref({ icon: '馃挴', name: '鐧惧垎閫夋墜' })
+
+// 杞洏鏃嬭浆瑙掑害
+const turntableRotation = ref(0)
+
+// 鏈烘鎵嬩綅缃?(0-100%)
+const armPosition = ref(50)
+
+// 璁惧鐘舵€?const devices = reactive({
+  conveyor: { active: false, hasMaterial: true },
+  arm: { holding: false, moving: false, down: false },
+  turntable: {
+    rotating: false,
+    stations: [
+      { id: 1, name: '涓婃枡浣?, hasMaterial: false },
+      { id: 2, name: '鍔犲伐浣?, hasMaterial: false },
+      { id: 3, name: '涓嬫枡浣?, hasMaterial: false },
+      { id: 4, name: '绌轰綅', hasMaterial: false }
+    ]
+  },
+  output: { active: false }
+})
+
+// 璁＄畻灞炴€?const completedLevels = computed(() => gameStore.gameProgress?.completedEngineering || [])
+
+const isCompleted = (levelId) => completedLevels.value.includes(levelId)
+
+const isLocked = (level, index) => {
+  if (index === 0) return false
+  return !isCompleted(engineeringLevels[index - 1].id)
+}
+
+const statusClass = computed(() => {
+  if (showSuccess.value) return 'success'
+  if (isRunning.value) return 'running'
+  return 'idle'
+})
+
+const statusText = computed(() => {
+  if (showSuccess.value) return '鎴愬姛'
+  if (isRunning.value) return '杩愯涓?
+  return '寰呮満'
+})
+
+const canSubmit = computed(() => flow.value.length > 0 && !isRunning.value)
+
+// 鏂规硶
+const selectLevel = (level, index) => {
+  if (isLocked(level, index)) {
+    alert('璇峰厛瀹屾垚鍓嶄竴鍏冲崱')
+    return
+  }
+  currentLevel.value = level
+  currentLevelIndex.value = index
+  resetSimulation()
+}
+
+const exitLevel = () => {
+  currentLevel.value = null
+  flow.value = []
+  resetSimulation()
+}
+
+const addAction = (action) => {
+  flow.value.push(action)
+}
+
+const removeAction = (index) => {
+  flow.value.splice(index, 1)
+}
+
+const clearFlow = () => {
+  flow.value = []
+}
+
+const resetSimulation = () => {
+  devices.conveyor.hasMaterial = true
+  devices.conveyor.active = false
+  devices.arm.holding = false
+  devices.arm.moving = false
+  devices.arm.down = false
+  devices.turntable.rotating = false
+  devices.turntable.stations.forEach(s => s.hasMaterial = false)
+  devices.output.active = false
+  completedCount.value = 0
+  currentStep.value = -1
+  showSuccess.value = false
+  isRunning.value = false
+  debugMode.value = false
+  turntableRotation.value = 0
+  armPosition.value = 50
+}
+
+const startDebug = async () => {
+  if (flow.value.length === 0) return
+  
+  debugMode.value = true
+  isRunning.value = true
+  currentStep.value = -1
+  
+  const startTime = Date.now()
+  
+  for (let i = 0; i < flow.value.length; i++) {
+    if (!isRunning.value) break
+    
+    currentStep.value = i
+    const action = flow.value[i]
+    
+    await executeAction(action)
+  }
+  
+  elapsedTime.value = Math.round((Date.now() - startTime) / 1000)
+  isRunning.value = false
+}
+
+const executeAction = async (action) => {
+  const duration = actionBlocks[action]?.duration || 800
+  
+  switch (action) {
+    case 'conveyor_feed':
+      devices.conveyor.active = true
+      await sleep(duration)
+      devices.conveyor.active = false
+      break
+      
+    case 'arm_down':
+      devices.arm.down = true
+      await sleep(duration)
+      break
+      
+    case 'arm_grab':
+      if (devices.conveyor.hasMaterial || devices.turntable.stations[2].hasMaterial) {
+        devices.arm.holding = true
+        if (devices.conveyor.hasMaterial) {
+          devices.conveyor.hasMaterial = false
+        } else if (devices.turntable.stations[2].hasMaterial) {
+          devices.turntable.stations[2].hasMaterial = false
+        }
+      }
+      await sleep(duration)
+      break
+      
+    case 'arm_up':
+      devices.arm.down = false
+      await sleep(duration)
+      break
+      
+    case 'move_to_turntable':
+      devices.arm.moving = true
+      // 鍔ㄧ敾绉诲姩鍒拌浆鐩樹綅缃?      const startToTurntable = armPosition.value
+      const targetTurntable = 35
+      const steps = 10
+      for (let i = 0; i <= steps; i++) {
+        armPosition.value = startToTurntable + (targetTurntable - startToTurntable) * (i / steps)
+        await sleep(duration / steps)
+      }
+      devices.arm.moving = false
+      break
+      
+    case 'arm_down_place':
+      devices.arm.down = true
+      await sleep(duration)
+      break
+      
+    case 'arm_release':
+      if (devices.arm.holding) {
+        devices.arm.holding = false
+        devices.turntable.stations[0].hasMaterial = true
+      }
+      await sleep(duration)
+      break
+      
+    case 'arm_home':
+      devices.arm.moving = true
+      devices.arm.down = false
+      // 鍔ㄧ敾鍥炲埌鍘熶綅
+      const startHome = armPosition.value
+      const targetHome = 50
+      const stepsHome = 10
+      for (let i = 0; i <= stepsHome; i++) {
+        armPosition.value = startHome + (targetHome - startHome) * (i / stepsHome)
+        await sleep(duration / stepsHome)
+      }
+      devices.arm.moving = false
+      break
+      
+    case 'turntable_rotate':
+      devices.turntable.rotating = true
+      // 鏃嬭浆鍔ㄧ敾
+      const startRotation = turntableRotation.value
+      const targetRotation = startRotation + 90
+      const stepsRotate = 15
+      for (let i = 0; i <= stepsRotate; i++) {
+        turntableRotation.value = startRotation + (targetRotation - startRotation) * (i / stepsRotate)
+        await sleep(duration / stepsRotate)
+      }
+      devices.turntable.rotating = false
+      // 鐗╂枡浣嶇疆鍙樺寲
+      const station0 = devices.turntable.stations[0].hasMaterial
+      devices.turntable.stations[0].hasMaterial = false
+      devices.turntable.stations[1].hasMaterial = station0
+      break
+      
+    case 'turntable_lock':
+      await sleep(duration)
+      break
+      
+    case 'move_to_output':
+      devices.arm.moving = true
+      // 鍔ㄧ敾绉诲姩鍒颁笅鏂欎綅缃?      const startToOutput = armPosition.value
+      const targetOutput = 65
+      const stepsOutput = 10
+      for (let i = 0; i <= stepsOutput; i++) {
+        armPosition.value = startToOutput + (targetOutput - startToOutput) * (i / stepsOutput)
+        await sleep(duration / stepsOutput)
+      }
+      devices.arm.moving = false
+      break
+      
+    case 'output_conveyor':
+      devices.output.active = true
+      await sleep(duration)
+      if (devices.arm.holding) {
+        devices.arm.holding = false
+        completedCount.value++
+      }
+      devices.output.active = false
+      break
+  }
+}
+
+const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms))
+
+const stopSimulation = () => {
+  isRunning.value = false
+  debugMode.value = false
+  currentStep.value = -1
+}
+
+const submitFlow = async () => {
+  debugMode.value = false
+  await startDebug()
+  
+  const isSuccess = completedCount.value >= currentLevel.value.targetCount
+  
+  if (isSuccess) {
+    showSuccess.value = true
+    
+    await gameStore.completeEngineeringLevel(
+      currentLevel.value.id,
+      currentLevel.value.score,
+      false
+    )
+    
+    if (currentLevelIndex.value === 0) {
+      achievement.value = { icon: '馃挴', name: '鐧惧垎閫夋墜' }
+      showAchievement.value = true
+    }
+  } else {
+    alert('娴佺▼鏈夎锛屾湭瀹屾垚鐩爣銆傝妫€鏌ュ姩浣滈『搴忋€?)
+  }
+}
+
+const nextLevel = () => {
+  if (currentLevelIndex.value < engineeringLevels.length - 1) {
+    selectLevel(engineeringLevels[currentLevelIndex.value + 1], currentLevelIndex.value + 1)
+  } else {
+    exitLevel()
+  }
+}
+</script>
+
+<style scoped>
+.production-line-game {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #0a0a1a 0%, #1a1a3a 100%);
+  color: #fff;
+  padding: 20px;
+  position: relative;
+  overflow: hidden;
+}
+
+/* 瀹犵墿 */
+.pet-companion {
+  position: fixed;
+  z-index: 1000;
+  pointer-events: none;
+  transition: left 0.1s, top 0.1s;
+}
+
+.pet-emoji {
+  font-size: 32px;
+  display: block;
+  animation: bounce 0.5s ease-in-out infinite;
+}
+
+@keyframes bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-5px); }
+}
+
+.pet-thought {
+  position: absolute;
+  top: -30px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(255, 255, 255, 0.9);
+  color: #333;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+/* 鍏冲崱閫夋嫨 */
+.level-select {
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.header {
+  display: flex;
+  align-items: flex-start;
+  gap: 20px;
+  margin-bottom: 30px;
+}
+
+.btn-back {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #fff;
+  padding: 8px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.btn-back:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.title-area h1 {
+  font-size: 28px;
+  margin-bottom: 5px;
+}
+
+.title-area p {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.intro-card {
+  background: rgba(0, 212, 255, 0.1);
+  border: 1px solid rgba(0, 212, 255, 0.3);
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 30px;
+}
+
+.intro-card h2 {
+  color: #00d4ff;
+  margin-bottom: 10px;
+}
+
+.intro-card .highlight {
+  color: #ffd700;
+  font-weight: 600;
+}
+
+.level-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.level-card {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 20px;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.level-card:hover:not(.locked) {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(0, 212, 255, 0.5);
+  transform: translateX(5px);
+}
+
+.level-card.completed {
+  border-color: #27ae60;
+}
+
+.level-card.locked {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.level-number {
+  width: 40px;
+  height: 40px;
+  background: rgba(0, 212, 255, 0.2);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.level-info {
+  flex: 1;
+}
+
+.level-info h3 {
+  font-size: 18px;
+  margin-bottom: 5px;
+}
+
+.level-info p {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.level-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 5px;
+}
+
+.lock-icon {
+  font-size: 20px;
+}
+
+/* 娓告垙鐣岄潰 */
+.game-screen {
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.game-header {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  margin-bottom: 20px;
+}
+
+.level-title {
+  flex: 1;
+}
+
+.level-title h2 {
+  font-size: 20px;
+  margin-bottom: 5px;
+}
+
+.level-title p {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.status-badge {
+  padding: 6px 16px;
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.status-badge.idle {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.status-badge.running {
+  background: rgba(0, 212, 255, 0.3);
+  color: #00d4ff;
+}
+
+.status-badge.success {
+  background: rgba(39, 174, 96, 0.3);
+  color: #27ae60;
+}
+
+/* 涓绘父鎴忓尯鍩?*/
+.game-main {
+  display: grid;
+  grid-template-columns: 1fr 380px;
+  gap: 20px;
+}
+
+/* 浠跨湡鍖哄煙 */
+.simulation-area {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  padding: 20px;
+}
+
+.sim-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.sim-controls {
+  display: flex;
+  gap: 8px;
+}
+
+.sim-controls button {
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.3s;
+}
+
+.btn-debug {
+  background: rgba(0, 212, 255, 0.2);
+  color: #00d4ff;
+}
+
+.btn-submit {
+  background: rgba(39, 174, 96, 0.2);
+  color: #27ae60;
+}
+
+.btn-stop {
+  background: rgba(231, 76, 60, 0.2);
+  color: #e74c3c;
+}
+
+.btn-reset, .btn-clear {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* 浜х嚎甯冨眬 */
+.production-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 30px;
+}
+
+.top-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 20px;
+}
+
+/* 浼犻€佸甫 */
+.device {
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 12px;
+  padding: 15px;
+  border: 2px solid transparent;
+  transition: all 0.3s;
+}
+
+.device.active {
+  border-color: #00d4ff;
+  box-shadow: 0 0 20px rgba(0, 212, 255, 0.3);
+}
+
+.device-label {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.6);
+  margin-bottom: 10px;
+  text-align: center;
+}
+
+.conveyor-visual {
+  min-height: 60px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.conveyor-belt {
+  display: flex;
+  gap: 2px;
+  font-size: 24px;
+  color: #00d4ff;
+}
+
+.conveyor-belt.moving .belt-segment {
+  animation: beltMove 0.3s linear infinite;
+}
+
+@keyframes beltMove {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-10px); }
+}
+
+.material-area {
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.material {
+  font-size: 28px;
+}
+
+.output-count {
+  font-size: 18px;
+  color: #27ae60;
+  font-weight: 600;
+}
+
+/* 鏈烘鎵?*/
+.device.arm {
+  border: 2px solid transparent;
+}
+
+.device.arm.holding {
+  border-color: #7b2cbf;
+  box-shadow: 0 0 20px rgba(123, 44, 191, 0.3);
+}
+
+.arm-visual {
+  height: 80px;
+}
+
+.arm-track {
+  width: 100%;
+  height: 10px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 5px;
+  position: relative;
+  margin-top: 30px;
+}
+
+.arm-cart {
+  position: absolute;
+  width: 20px;
+  height: 10px;
+  background: #7b2cbf;
+  border-radius: 5px;
+  transition: left 0.1s;
+}
+
+.arm-vertical {
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  transition: transform 0.3s;
+}
+
+.arm-vertical.down {
+  transform: translateX(-50%) translateY(30px);
+}
+
+.arm-gripper {
+  font-size: 24px;
+}
+
+.held-material {
+  font-size: 20px;
+}
+
+/* 鍦嗗舰杞洏 */
+.middle-row {
+  display: flex;
+  justify-content: center;
+}
+
+.turntable-container {
+  text-align: center;
+}
+
+.turntable-label {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.6);
+  margin-bottom: 15px;
+}
+
+.turntable {
+  width: 200px;
+  height: 200px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #2a2a4a 0%, #1a1a3a 100%);
+  border: 4px solid #ffd700;
+  position: relative;
+  margin: 0 auto;
+  transition: transform 0.1s;
+  box-shadow: 0 0 30px rgba(255, 215, 0, 0.2);
+}
+
+.turntable.rotating {
+  box-shadow: 0 0 50px rgba(255, 215, 0, 0.5);
+}
+
+.turntable-center {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 40px;
+  height: 40px;
+  background: rgba(255, 215, 0, 0.2);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.center-icon {
+  font-size: 20px;
+}
+
+.station {
+  position: absolute;
+  width: 50px;
+  height: 50px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s;
+}
+
+.station.hasMaterial {
+  background: rgba(0, 212, 255, 0.2);
+  border: 2px solid #00d4ff;
+}
+
+.station-name {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.station-material {
+  font-size: 24px;
+}
+
+/* 鍥涗釜宸ヤ綅浣嶇疆 */
+.station-1 {
+  top: -25px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.station-2 {
+  top: 50%;
+  right: -25px;
+  transform: translateY(-50%);
+}
+
+.station-3 {
+  bottom: -25px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.station-4 {
+  top: 50%;
+  left: -25px;
+  transform: translateY(-50%);
+}
+
+/* 璋冭瘯妯″紡鎻愮ず */
+.debug-notice {
+  display: flex;
+  justify-content: space-between;
+  background: rgba(0, 212, 255, 0.1);
+  border-radius: 8px;
+  padding: 10px 15px;
+  font-size: 14px;
+  margin-top: 20px;
+}
+
+/* 鎴愬姛瑕嗙洊灞?*/
+.success-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+
+.success-content {
+  background: rgba(39, 174, 96, 0.2);
+  border: 2px solid #27ae60;
+  border-radius: 20px;
+  padding: 40px;
+  text-align: center;
+}
+
+.success-icon {
+  font-size: 48px;
+  display: block;
+  margin-bottom: 15px;
+}
+
+.stats {
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+  margin: 15px 0;
+}
+
+.btn-next {
+  background: #27ae60;
+  color: #fff;
+  border: none;
+  padding: 12px 30px;
+  border-radius: 10px;
+  font-size: 16px;
+  cursor: pointer;
+  margin-top: 15px;
+}
+
+/* 鍔ㄤ綔缂栨帓鍖?*/
+.action-area {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.rules-panel {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 10px;
+  padding: 12px;
+}
+
+.mission {
+  font-size: 13px;
+  margin-bottom: 10px;
+  line-height: 1.5;
+}
+
+.rules h4 {
+  font-size: 13px;
+  margin-bottom: 8px;
+}
+
+.rule-list p {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.7);
+  margin: 4px 0;
+  line-height: 1.4;
+}
+
+/* 鍔ㄤ綔搴?*/
+.action-library {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 10px;
+  padding: 12px;
+}
+
+.action-library h4 {
+  font-size: 13px;
+  margin-bottom: 8px;
+}
+
+.action-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+}
+
+.action-block {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 8px 4px;
+  background: rgba(0, 0, 0, 0.3);
+  border: 2px solid;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.action-block:hover {
+  background: rgba(255, 255, 255, 0.1);
+  transform: scale(1.05);
+}
+
+.action-icon {
+  font-size: 18px;
+}
+
+.action-name {
+  font-size: 10px;
+  text-align: center;
+}
+
+/* 娴佺▼缂栨帓 */
+.flow-panel {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 10px;
+  padding: 12px;
+  min-height: 100px;
+}
+
+.flow-panel h4 {
+  font-size: 13px;
+  margin-bottom: 8px;
+}
+
+.flow-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.flow-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  color: #fff;
+  font-size: 12px;
+}
+
+.flow-item.active {
+  box-shadow: 0 0 15px rgba(255, 255, 255, 0.5);
+  transform: scale(1.1);
+}
+
+.step-num {
+  font-size: 10px;
+  opacity: 0.7;
+}
+
+.step-icon {
+  font-size: 14px;
+}
+
+.btn-remove {
+  background: rgba(0, 0, 0, 0.3);
+  border: none;
+  color: #fff;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 10px;
+  line-height: 1;
+}
+
+.flow-empty {
+  color: rgba(255, 255, 255, 0.3);
+  text-align: center;
+  padding: 15px;
+  font-size: 12px;
+}
+
+.btn-clear-flow {
+  background: rgba(231, 76, 60, 0.2);
+  color: #e74c3c;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 11px;
+}
+
+/* 鐩爣闈㈡澘 */
+.goal-panel {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 10px;
+  padding: 12px;
+}
+
+.goal-panel h4 {
+  font-size: 13px;
+  margin-bottom: 8px;
+}
+
+.goal-text {
+  font-size: 12px;
+  margin-bottom: 10px;
+  line-height: 1.4;
+}
+
+.progress-bar {
+  height: 8px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 8px;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #00d4ff, #27ae60);
+  border-radius: 4px;
+  transition: width 0.3s;
+}
+
+.progress-text {
+  font-size: 12px;
+  color: #00d4ff;
+  font-weight: 600;
+}
+
+/* 鎴愬氨寮圭獥 */
+.achievement-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 200;
+}
+
+.achievement-content {
+  background: linear-gradient(135deg, #1a1a3a 0%, #2a2a4a 100%);
+  border: 2px solid #ffd700;
+  border-radius: 20px;
+  padding: 30px 50px;
+  text-align: center;
+}
+
+.achievement-content h3 {
+  color: #ffd700;
+  margin-bottom: 20px;
+}
+
+.achievement-badge {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.achievement-icon {
+  font-size: 48px;
+}
+
+.achievement-name {
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.btn-close {
+  background: #ffd700;
+  color: #1a1a3a;
+  border: none;
+  padding: 10px 30px;
+  border-radius: 10px;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+@media (max-width: 1024px) {
+  .game-main {
+    grid-template-columns: 1fr;
+  }
+  
+  .top-row {
+    grid-template-columns: 1fr;
+  }
+}
+</style>

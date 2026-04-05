@@ -1,0 +1,12 @@
+[name = "logic-training-api"]
+main = "worker/index.js"
+compatibility_date = "2024-01-01"
+
+# KV 命名空间用于存储数据
+[[kv_namespaces]]
+binding = "USERS"
+id = "your-users-namespace-id"
+
+[[kv_namespaces]]
+binding = "GAME_DATA"
+id = "your-game-namespace-id"

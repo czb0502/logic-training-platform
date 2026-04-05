@@ -1,0 +1,213 @@
+[
+  {
+    "userId": "6df1f755-5e00-473a-95dd-2eb1a507f3d2",
+    "account": "1314",
+    "password": "$2a$10$qpzsU/TuTDyRXkmvoCcbJu9vKOfrTgDoEGZa1KY/sPpx7TV84APpO",
+    "username": "玩家1314",
+    "avatar": "",
+    "level": "新人入门",
+    "totalScore": 0,
+    "scores": {
+      "detective": 0,
+      "engineering": 0,
+      "expression": 0
+    },
+    "coins": 680,
+    "completedContent": {
+      "detectiveCases": [],
+      "engineeringLevels": [],
+      "expressionLevels": []
+    },
+    "achievements": [],
+    "unlockedPets": [
+      "pet_moon",
+      "pet_expression"
+    ],
+    "activePet": "pet_moon",
+    "petData": {
+      "pet_moon": {
+        "petId": "pet_moon",
+        "level": 1,
+        "exp": 0,
+        "intimacy": 5,
+        "satiety": 100,
+        "accompanyTime": 300,
+        "lastFeedTime": 1775291952185,
+        "lastPerformTime": 1775292123129
+      },
+      "pet_expression": {
+        "exp": 0,
+        "lastFeedTime": 1775305727520,
+        "petId": "pet_expression",
+        "level": 1,
+        "satiety": 100,
+        "accompanyTime": 0,
+        "intimacy": 50
+      }
+    },
+    "dailyTasks": {
+      "lastLoginDate": "2026-04-04",
+      "loginStreak": 1,
+      "todayAnswered": 0,
+      "todayCorrect": 0,
+      "todayCoins": 20,
+      "completedTasks": [
+        "daily_login"
+      ]
+    },
+    "createTime": 1775291913007,
+    "updateTime": 1775346224115
+  },
+  {
+    "userId": "c2955ab5-8539-4ecb-9660-a06fc32381d1",
+    "account": "testuser123",
+    "password": "$2a$10$n/wJretEEjXmvd.UhKvWBuWgiCwXNfDLhHiFwgDbvcrzxAnE6UC/G",
+    "username": "玩家testuser123",
+    "avatar": "",
+    "level": "新人入门",
+    "totalScore": 0,
+    "scores": {
+      "detective": 0,
+      "engineering": 0,
+      "expression": 0
+    },
+    "coins": 140,
+    "completedContent": {
+      "detectiveCases": [],
+      "engineeringLevels": [],
+      "expressionLevels": []
+    },
+    "achievements": [],
+    "unlockedPets": [
+      "pet_expression"
+    ],
+    "activePet": "pet_expression",
+    "petData": {
+      "pet_expression": {
+        "exp": 0,
+        "lastFeedTime": 1775305672283,
+        "petId": "pet_expression",
+        "level": 1,
+        "satiety": 100,
+        "accompanyTime": 0,
+        "intimacy": 0
+      }
+    },
+    "dailyTasks": {
+      "lastLoginDate": "2026-04-04",
+      "loginStreak": 1,
+      "todayAnswered": 0,
+      "todayCorrect": 0,
+      "todayCoins": 20,
+      "completedTasks": [
+        "daily_login"
+      ]
+    },
+    "createTime": 1775304800930,
+    "updateTime": 1775305547894
+  },
+  {
+    "userId": "33eaadbc-b4ca-4631-a7da-98531d27d420",
+    "account": "demo2024",
+    "password": "$2a$10$DuLVeFezbwki2Xwz15ifBOnCd9u0BaZXpNaPvXJE/ab/rffO.Bf9y",
+    "username": "玩家demo2024",
+    "avatar": "",
+    "level": "新人入门",
+    "totalScore": 0,
+    "scores": {
+      "detective": 0,
+      "engineering": 0,
+      "expression": 0
+    },
+    "coins": 100,
+    "completedContent": {
+      "detectiveCases": [],
+      "engineeringLevels": [],
+      "expressionLevels": []
+    },
+    "achievements": [],
+    "unlockedPets": [],
+    "activePet": null,
+    "petData": {},
+    "dailyTasks": {
+      "lastLoginDate": "2026-04-04",
+      "loginStreak": 1,
+      "todayAnswered": 0,
+      "todayCorrect": 0,
+      "todayCoins": 0,
+      "completedTasks": []
+    },
+    "createTime": 1775304834529,
+    "updateTime": 1775304834529
+  },
+  {
+    "userId": "9d449d75-9250-43e2-ba56-55b8fed49362",
+    "account": "test1343812212",
+    "password": "$2a$10$xw44ItTuvP7bo.Zy8CnCXeNNGA3mi7D89K5WK2vpQJyuhi1.ElA8W",
+    "username": "玩家test1343812212",
+    "avatar": "",
+    "level": "新人入门",
+    "totalScore": 0,
+    "scores": {
+      "detective": 0,
+      "engineering": 0,
+      "expression": 0
+    },
+    "coins": 100,
+    "completedContent": {
+      "detectiveCases": [],
+      "engineeringLevels": [],
+      "expressionLevels": []
+    },
+    "achievements": [],
+    "unlockedPets": [],
+    "activePet": null,
+    "petData": {},
+    "dailyTasks": {
+      "lastLoginDate": "2026-04-04",
+      "loginStreak": 1,
+      "todayAnswered": 0,
+      "todayCorrect": 0,
+      "todayCoins": 0,
+      "completedTasks": []
+    },
+    "createTime": 1775305165646,
+    "updateTime": 1775305165646
+  },
+  {
+    "userId": "9d6d4127-b872-4e35-9895-a99295080ede",
+    "account": "test888",
+    "password": "$2a$10$TNlMZGAcyn76SBRF8vgg9OsxfsjkIMKptbGxsv8PunajgTeRjp/Kq",
+    "username": "用户test888",
+    "avatar": "",
+    "level": "新人入门",
+    "totalScore": 0,
+    "scores": {
+      "detective": 0,
+      "engineering": 0,
+      "expression": 0
+    },
+    "coins": 120,
+    "completedContent": {
+      "detectiveCases": [],
+      "engineeringLevels": [],
+      "expressionLevels": []
+    },
+    "achievements": [],
+    "unlockedPets": [],
+    "activePet": null,
+    "petData": {},
+    "dailyTasks": {
+      "lastLoginDate": "2026-04-04",
+      "loginStreak": 1,
+      "todayAnswered": 0,
+      "todayCorrect": 0,
+      "todayCoins": 20,
+      "completedTasks": [
+        "daily_login"
+      ]
+    },
+    "createTime": 1775314661386,
+    "updateTime": 1775315083989
+  }
+]
